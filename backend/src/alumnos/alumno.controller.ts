@@ -17,7 +17,7 @@ export class AlumnoController {
     return this.service.create(dto);
   }
 
-  @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR, RolUsuario.PROFESOR)
+  @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR)
   @Get()
   findAll(
     @Query('q') q?: string,
@@ -33,7 +33,7 @@ export class AlumnoController {
     return this.service.findByCodigo(codigo);
   }
 
-  @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR, RolUsuario.PROFESOR)
+  @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
