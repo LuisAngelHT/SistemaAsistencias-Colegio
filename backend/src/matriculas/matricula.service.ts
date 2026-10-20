@@ -78,4 +78,16 @@ export class MatriculaService {
     await this.repo.update(id, { estado });
     return this.findOne(id);
   }
+  //el escaneo necesita encontrar la matricula vigente de un alumno
+  findActivaDeAlumno(alumnoId: string) {
+  return this.repo.findOne({
+    where: {
+      alumnoId,
+      estado: EstadoMatricula.ACTIVA,
+      seccion: { anioAcademico: { activo: true } },
+    },
+    relations: { alumno: true, seccion: { grado: true } },
+  });
+}
+
 }

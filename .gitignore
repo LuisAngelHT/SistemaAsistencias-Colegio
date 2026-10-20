@@ -1,0 +1,22 @@
+# Dependencias (Evita subir miles de archivos de librerías)
+**/node_modules/
+
+# Carpetas de compilación (Código generado automáticamente)
+**/dist/
+**/.next/
+**/build/
+
+# Entornos locales y configuraciones de TypeScript
+**/*.tsbuildinfo
+
+# Archivos de variables de entorno con contraseñas/llaves secretas
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# Archivos del sistema operativo y de VS Code
+.vscode/
+.DS_Store
+Thumbs.db

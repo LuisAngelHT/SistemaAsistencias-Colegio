@@ -9,6 +9,8 @@ import { AcademicoModule } from './academico/academico.module';
 import { AlumnoModule } from './alumnos/alumno.module';
 import { ApoderadoModule } from './apoderados/apoderado.module';
 import { MatriculaModule } from './matriculas/matricula.module';
+import { HorarioModule } from './horarios/horario.module';
+import { AsistenciaModule } from './asistencia/asistencia.module';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { MatriculaModule } from './matriculas/matricula.module';
         synchronize: false, // el esquema ya lo creaste con tu script SQL
       }),
     }),
-    SupabaseModule, UsuarioModule, AuthModule, AcademicoModule, AlumnoModule, ApoderadoModule, MatriculaModule
+    SupabaseModule, UsuarioModule, AuthModule, AcademicoModule, AlumnoModule, ApoderadoModule, MatriculaModule, HorarioModule, AsistenciaModule
   ],
 })
 export class AppModule {}
