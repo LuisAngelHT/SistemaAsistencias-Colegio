@@ -45,9 +45,12 @@ export class UsuarioService {
     }
   }
 
-  findAll(rol?: RolUsuario): Promise<Usuario[]> {
+  findAll(rol?: RolUsuario, activosOnly = false): Promise<Usuario[]> {
     return this.repo.find({
-      where: rol ? { rol } : {},
+      where: {
+        ...(rol ? { rol } : {}),
+        ...(activosOnly ? { activo: true } : {}),
+      },
       order: { apellidos: 'ASC', nombres: 'ASC' },
     });
   }

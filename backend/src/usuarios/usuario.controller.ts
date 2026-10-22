@@ -18,8 +18,8 @@ export class UsuarioController {
   }
 
   @Get()
-  findAll(@Query('rol') rol?: RolUsuario) {
-    return this.service.findAll(rol);
+  findAll(@Query('rol') rol?: RolUsuario, @Query('activos') activos?: string) {
+    return this.service.findAll(rol, activos === 'true');
   }
 
   @Get(':id')

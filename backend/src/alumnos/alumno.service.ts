@@ -24,20 +24,21 @@ export class AlumnoService {
   }
 
   // Búsqueda por nombre, apellido, DNI o código, con paginación
-  async findAll(q?: string, page = 1, limit = 20) {
+  async findAll(q?: string, page = 1, limit = 20, activosOnly = false) {
     limit = Math.min(Math.max(limit, 1), 100);
     page = Math.max(page, 1);
     const like = q?.trim() ? `%${q.trim()}%` : null;
 
+    const activoFilter = activosOnly ? { activo: true } : {};
     const [data, total] = await this.repo.findAndCount({
       where: like
         ? [
-            { apellidos: ILike(like) },
-            { nombres: ILike(like) },
-            { dni: ILike(like) },
-            { codigo: ILike(like) },
+            { ...activoFilter, apellidos: ILike(like) },
+            { ...activoFilter, nombres: ILike(like) },
+            { ...activoFilter, dni: ILike(like) },
+            { ...activoFilter, codigo: ILike(like) },
           ]
-        : {},
+        : activoFilter,
       order: { apellidos: 'ASC', nombres: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,

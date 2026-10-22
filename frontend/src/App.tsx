@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { queryClient } from './lib/queryClient'
 import { BrandMark } from './features/auth/BrandMark'
 import { LoginPage } from './features/auth/LoginPage'
+import { DirectorDashboard } from './features/director/dashboard/DirectorDashboard'
 import {
   getCurrentUsuario,
   signIn,
@@ -8,6 +10,17 @@ import {
   subscribeToSignOut,
 } from './features/auth/authService'
 import type { Usuario } from './features/auth/types'
+
+const TeacherDashboard = lazy(() =>
+  import('./features/teacher/TeacherDashboard').then((module) => ({
+    default: module.TeacherDashboard,
+  })),
+)
+const AuxiliaryDashboard = lazy(() =>
+  import('./features/auxiliary/AuxiliaryDashboard').then((module) => ({
+    default: module.AuxiliaryDashboard,
+  })),
+)
 
 const roleLabels: Record<Usuario['rol'], string> = {
   director: 'Director',
@@ -43,7 +56,10 @@ function App() {
 
     void restoreSession()
     const unsubscribe = subscribeToSignOut(() => {
-      if (isMounted) setUsuario(null)
+      if (isMounted) {
+        queryClient.clear()
+        setUsuario(null)
+      }
     })
 
     return () => {
@@ -71,6 +87,7 @@ function App() {
   const handleSignOut = async () => {
     try {
       await signOut()
+      queryClient.clear()
       setUsuario(null)
       setError('')
     } catch {
@@ -88,6 +105,46 @@ function App() {
   }
 
   if (usuario) {
+    if (usuario.rol === 'director') {
+      return (
+        <DirectorDashboard
+          usuario={usuario}
+          error={error}
+          onSignOut={handleSignOut}
+        />
+      )
+    }
+
+    if (usuario.rol === 'profesor') {
+      return (
+        <Suspense
+          fallback={
+            <main className="loading-screen" aria-label="Cargando panel del profesor">
+              <span className="loading-spinner" />
+              <span>Preparando tu espacio...</span>
+            </main>
+          }
+        >
+          <TeacherDashboard usuario={usuario} onSignOut={handleSignOut} />
+        </Suspense>
+      )
+    }
+
+    if (usuario.rol === 'auxiliar') {
+      return (
+        <Suspense
+          fallback={
+            <main className="loading-screen" aria-label="Cargando panel del auxiliar">
+              <span className="loading-spinner" />
+              <span>Preparando tu espacio...</span>
+            </main>
+          }
+        >
+          <AuxiliaryDashboard usuario={usuario} onSignOut={handleSignOut} />
+        </Suspense>
+      )
+    }
+
     return (
       <main className="welcome-screen">
         <section className="welcome-card">

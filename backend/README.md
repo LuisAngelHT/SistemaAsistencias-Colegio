@@ -25,6 +25,16 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Asistencia por clase
+
+Antes de usar el panel del profesor, ejecuta una vez el script
+[`sql/asistencia-clase.sql`](./sql/asistencia-clase.sql) en PostgreSQL para crear la
+tabla que guarda asistencias por horario y fecha. Esta tabla es independiente de
+`asistencia_ingreso`, que conserva la asistencia de ingreso al colegio.
+
+Después, reinicia el backend para habilitar `GET /asistencia/clase` y
+`POST /asistencia/clase?horarioId=<id>`.
+
 ## Project setup
 
 ```bash

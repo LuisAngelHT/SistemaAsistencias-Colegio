@@ -23,8 +23,9 @@ export class AlumnoController {
     @Query('q') q?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('activos') activos?: string,
   ) {
-    return this.service.findAll(q, page, limit);
+    return this.service.findAll(q, page, limit, activos === 'true');
   }
 
   @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR)

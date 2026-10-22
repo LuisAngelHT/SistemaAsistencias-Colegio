@@ -133,7 +133,7 @@ export class HorarioService {
   async findOne(id: number) {
     const horario = await this.repo.findOne({
       where: { id },
-      relations: { seccion: { grado: true }, curso: true, profesor: true },
+      relations: { seccion: { grado: true, anioAcademico: true }, curso: true, profesor: true },
     });
     if (!horario) throw new NotFoundException('Horario no encontrado');
     return horario;
