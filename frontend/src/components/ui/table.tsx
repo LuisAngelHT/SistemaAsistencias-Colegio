@@ -18,11 +18,11 @@ function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
-  return <tr data-slot="table-row" className={cn('border-b border-slate-100 transition-colors hover:bg-slate-50/70', className)} {...props} />
+  return <tr data-slot="table-row" className={cn('border-b border-slate-100 transition-colors hover:bg-teal-50/30', className)} {...props} />
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
-  return <th data-slot="table-head" className={cn('h-11 px-5 text-left align-middle text-[10px] font-bold tracking-wider text-slate-500', className)} {...props} />
+  return <th data-slot="table-head" className={cn('h-12 px-5 text-left align-middle text-[10px] font-bold tracking-[0.12em] text-slate-500', className)} {...props} />
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<'td'>) {

@@ -3,8 +3,8 @@
 
 :root {
   font-family: 'DM Sans', sans-serif;
-  color: #17232d;
-  background: #f8faf9;
+  color: #172033;
+  background: #f7f9fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -37,11 +37,15 @@ a {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
-  outline: 3px solid rgba(106, 212, 157, 0.7);
+  outline: 3px solid rgba(20, 184, 166, 0.55);
   outline-offset: 3px;
 }
 
 ::selection {
-  color: #102b29;
-  background: #b4f0d0;
+  color: #123b3b;
+  background: #bdf4e9;
+}
+
+body {
+  background-image: radial-gradient(ellipse at 8% 0%, rgba(204, 251, 241, 0.22), transparent 34%);
 }

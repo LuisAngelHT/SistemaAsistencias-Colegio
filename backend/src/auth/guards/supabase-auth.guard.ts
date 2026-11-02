@@ -5,6 +5,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { UsuarioService } from '../../usuarios/usuario.service';
+import { PortalFamiliarService } from '../../apoderados/portal-familiar.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class SupabaseAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly supabase: SupabaseService,
     private readonly usuarios: UsuarioService,
+    private readonly portalFamiliar: PortalFamiliarService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -28,17 +30,23 @@ export class SupabaseAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token requerido');
     }
 
+    if (token.startsWith('fam.')) {
+      req.usuario = await this.portalFamiliar.verificarTokenFamiliar(token);
+      return true;
+    }
+
     const { data, error } = await this.supabase.client.auth.getUser(token);
     if (error || !data.user) {
       throw new UnauthorizedException('Token inválido o expirado');
     }
 
     const usuario = await this.usuarios.findByAuthId(data.user.id);
-    if (!usuario || !usuario.activo) {
-      throw new ForbiddenException('Usuario no autorizado en el sistema');
+    if (usuario) {
+      if (!usuario.activo) throw new ForbiddenException('Usuario no autorizado en el sistema');
+      req.usuario = usuario;
+      return true;
     }
 
-    req.usuario = usuario;
-    return true;
+    throw new ForbiddenException('Usuario no autorizado en el sistema');
   }
 }

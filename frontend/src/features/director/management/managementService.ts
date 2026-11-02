@@ -6,7 +6,7 @@ import type {
   ManagementOptions,
 } from './types'
 
-const pageSize = 20
+const pageSize = 10
 
 async function getAccessToken(): Promise<string> {
   if (!supabase) {
@@ -169,6 +169,19 @@ export async function createRecord(
   })
 }
 
+export type ImportedStudent = ApiRecord & {
+  codigoAccesoFamilia: string
+}
+
+export async function importStudents(
+  students: { alumno: string; dni: string; fechaNacimiento: string }[],
+): Promise<ImportedStudent[]> {
+  return request<ImportedStudent[]>('/alumnos/importar', {
+    method: 'POST',
+    body: JSON.stringify({ alumnos: students }),
+  })
+}
+
 export async function updateRecord(
   module: ManagementModule,
   id: string | number,
@@ -259,6 +272,13 @@ export async function moveEnrollment(
   })
 }
 
+export async function generateStudentFamilyCode(alumnoId: string) {
+  return request<{
+    alumno: { id: string; nombres: string; apellidos: string; dni: string }
+    codigoAccesoFamilia: string
+  }>(`/alumnos/${alumnoId}/codigo-acceso-familiar`, { method: 'POST' })
+}
+
 export function buildPayload(
   module: ManagementModule,
   values: Record<string, string>,
@@ -302,8 +322,6 @@ export function buildPayload(
         gradoId: Number(values.gradoId),
         nombre: values.nombre.trim(),
         tutorId: optional('tutorId'),
-        horaIngreso: values.horaIngreso,
-        toleranciaMin: Number(values.toleranciaMin),
       }
     case 'grados':
       return {

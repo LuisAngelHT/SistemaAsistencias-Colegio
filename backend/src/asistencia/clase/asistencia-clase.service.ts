@@ -77,7 +77,9 @@ export class AsistenciaClaseService {
               apellidos: matricula.alumno.apellidos,
               fotoUrl: matricula.alumno.fotoUrl,
             },
-            estado: registro?.estado ?? null,
+            estado: registro?.estado === EstadoAsistencia.FALTA
+              ? EstadoAsistencia.EVASION
+              : registro?.estado ?? null,
           };
         }),
     };
@@ -109,7 +111,9 @@ export class AsistenciaClaseService {
         horarioId,
         matriculaId: alumno.matriculaId,
         fecha: dto.fecha,
-        estado: alumno.estado,
+        estado: alumno.estado === EstadoAsistencia.FALTA
+          ? EstadoAsistencia.EVASION
+          : alumno.estado,
         registradoPor: usuario.id,
       })),
       ['horarioId', 'matriculaId', 'fecha'],

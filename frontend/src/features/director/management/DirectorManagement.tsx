@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   buildPayload,
@@ -18,8 +18,9 @@ import type {
   ManagementOptions,
   SelectOption,
 } from './types'
+import { StudentFamilyAccessDialog } from './StudentFamilyAccessDialog'
 import { managementListKey, managementOptionsKey } from '../queryKeys'
-import { Copy, Pencil, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react'
+import { Copy, Eye, FileUp, Pencil, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
 import { Badge } from '../../../components/ui/badge'
@@ -37,6 +38,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../../components/ui/alert-dialog'
+
+const ImportStudentsDialog = lazy(() =>
+  import('./ImportStudentsDialog').then((module) => ({ default: module.ImportStudentsDialog })),
+)
 
 const moduleTitles: Record<ManagementModule, string> = {
   profesores: 'Profesores',
@@ -124,7 +129,6 @@ function columnsFor(module: ManagementModule): TableColumn[] {
         render: (row) => levelNames[getText(getRelation(row, 'grado') ?? {}, 'nivel')] ?? '—',
       },
       { label: 'TUTOR', render: (row) => personName(getRelation(row, 'tutor')) },
-      { label: 'INGRESO', render: (row) => getText(row, 'horaIngreso').slice(0, 5) || '—' },
     ]
   }
 
@@ -203,7 +207,7 @@ function fieldsFor(
             help: 'Debe contener al menos 6 caracteres.',
           }]
         : []),
-      { name: 'dni', label: 'DNI', type: 'text', min: 8, max: 15, placeholder: 'Opcional' },
+      { name: 'dni', label: 'DNI', type: 'text', required: !isEditing, min: 8, max: 15, pattern: '[0-9]{8,15}', placeholder: '8 a 15 dígitos' },
       { name: 'telefono', label: 'Teléfono', type: 'text', min: 6, max: 20, placeholder: 'Opcional' },
     ]
   }
@@ -213,7 +217,7 @@ function fieldsFor(
       { name: 'nombres', label: 'Nombres', type: 'text', required: true, maxLength: 100 },
       { name: 'apellidos', label: 'Apellidos', type: 'text', required: true, maxLength: 100 },
       { name: 'codigo', label: 'Código del alumno', type: 'text', pattern: '[A-Za-z0-9-]{3,20}', placeholder: 'Se genera automáticamente si queda vacío' },
-      { name: 'dni', label: 'DNI', type: 'text', min: 8, max: 15, placeholder: 'Opcional' },
+      { name: 'dni', label: 'DNI', type: 'text', required: true, min: 8, max: 15, pattern: '[0-9]{8,15}', placeholder: '8 a 15 dígitos' },
       { name: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' },
       ...(isEditing
         ? [{
@@ -259,8 +263,6 @@ function fieldsFor(
         options: optionsFromRecords(options.teachers, personName),
         help: 'Opcional. Solo se muestran profesores activos.',
       },
-      { name: 'horaIngreso', label: 'Hora de ingreso', type: 'time', required: true },
-      { name: 'toleranciaMin', label: 'Tolerancia (minutos)', type: 'number', required: true, min: 0 },
     ]
   }
 
@@ -357,8 +359,6 @@ function initialValues(
       const activeYear = fields.find((field) => field.name === 'anioAcademicoId')
         ?.options?.find((option) => option.label.includes('· Activo'))
       if (activeYear) defaults.anioAcademicoId = activeYear.value
-      defaults.horaIngreso = '08:00'
-      defaults.toleranciaMin = '10'
     }
     if (module === 'horarios') defaults.diaSemana = '1'
     if (module === 'alumnos') defaults.activo = 'true'
@@ -374,7 +374,7 @@ function initialValues(
     } else {
       const raw = record[field.name]
       const value = stringValue(raw)
-      values[field.name] = ['horaIngreso', 'horaInicio', 'horaFin'].includes(field.name)
+      values[field.name] = ['horaInicio', 'horaFin'].includes(field.name)
         ? value.slice(0, 5)
         : value
     }
@@ -553,6 +553,7 @@ export function DirectorManagement({
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [editingRecord, setEditingRecord] = useState<ApiRecord | null>(null)
   const [formError, setFormError] = useState('')
   const [actionError, setActionError] = useState('')
@@ -560,6 +561,7 @@ export function DirectorManagement({
   const [workingId, setWorkingId] = useState<string | number | null>(null)
   const [pendingAction, setPendingAction] = useState<ApiRecord | null>(null)
   const [qrStudent, setQrStudent] = useState<ApiRecord | null>(null)
+  const [familyCodeStudent, setFamilyCodeStudent] = useState<ApiRecord | null>(null)
   const optionsQuery = useQuery({
     queryKey: managementOptionsKey(module),
     queryFn: () => loadManagementOptions(module),
@@ -627,8 +629,11 @@ export function DirectorManagement({
         await updateRecord(module, id, payload)
         toast.success('Registro actualizado correctamente.')
       } else {
-        await createRecord(module, payload)
+        const createdRecord = await createRecord(module, payload)
         toast.success('Registro creado correctamente.')
+        if (module === 'alumnos' && typeof createdRecord.id === 'string') {
+          setFamilyCodeStudent(createdRecord)
+        }
       }
       setIsFormOpen(false)
       setEditingRecord(null)
@@ -712,7 +717,7 @@ export function DirectorManagement({
       <button
         type="button"
         onClick={onBack}
-        className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-emerald-800"
+        className="mb-5 inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-500 transition hover:bg-teal-50 hover:text-teal-800"
       >
         <span aria-hidden="true">←</span>
         Volver al resumen
@@ -730,15 +735,28 @@ export function DirectorManagement({
             Administra los registros de {moduleTitles[module].toLocaleLowerCase()} del colegio.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={openCreate}
-          disabled={isOptionsLoading}
-          className="h-11 rounded-lg px-4"
-        >
-          <Plus aria-hidden="true" />
-          Nuevo registro
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {module === 'alumnos' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsImportOpen(true)}
+              className="h-11 rounded-xl px-5"
+            >
+              <FileUp aria-hidden="true" />
+              Carga desde Excel
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={openCreate}
+            disabled={isOptionsLoading}
+            className="h-11 rounded-xl px-5"
+          >
+            <Plus aria-hidden="true" />
+            Nuevo registro
+          </Button>
+        </div>
       </div>
 
       {optionsError && (
@@ -748,8 +766,8 @@ export function DirectorManagement({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_12px_40px_-28px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
             <h2 className="font-semibold text-slate-800">Listado de {moduleTitles[module].toLocaleLowerCase()}</h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -846,6 +864,19 @@ export function DirectorManagement({
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
+                        {module === 'alumnos' && (
+                          <Button
+                            type="button"
+                            onClick={() => setFamilyCodeStudent(record)}
+                            variant="ghost"
+                            size="icon"
+                            className="text-blue-800 hover:bg-blue-50"
+                            title="Generar y mostrar código familiar"
+                            aria-label={`Generar y mostrar código familiar de ${personName(record)}`}
+                          >
+                            <Eye aria-hidden="true" />
+                          </Button>
+                        )}
                         {module === 'alumnos' && (
                           <Button
                             type="button"
@@ -957,6 +988,16 @@ export function DirectorManagement({
           onSave={saveRecord}
         />
       )}
+      {isImportOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/30 text-sm text-slate-700">Preparando carga Excel…</div>}>
+          <ImportStudentsDialog
+            onClose={() => setIsImportOpen(false)}
+            onImported={async () => {
+              await queryClient.invalidateQueries({ queryKey: ['director', 'management', 'alumnos'] })
+            }}
+          />
+        </Suspense>
+      )}
       <AlertDialog
         open={pendingAction !== null}
         onOpenChange={(open) => {
@@ -1018,6 +1059,19 @@ export function DirectorManagement({
           </div>
         </DialogContent>
       </Dialog>
+      <StudentFamilyAccessDialog
+        key={`${familyCodeStudent?.id ?? 'none'}-${getText(familyCodeStudent ?? {}, 'codigoAccesoFamilia')}`}
+        student={familyCodeStudent && typeof familyCodeStudent.id === 'string'
+          ? {
+              id: familyCodeStudent.id,
+              nombres: getText(familyCodeStudent, 'nombres'),
+              apellidos: getText(familyCodeStudent, 'apellidos'),
+              dni: getText(familyCodeStudent, 'dni'),
+            }
+          : null}
+        initialAccessCode={getText(familyCodeStudent ?? {}, 'codigoAccesoFamilia') || undefined}
+        onClose={() => setFamilyCodeStudent(null)}
+      />
     </section>
   )
 }

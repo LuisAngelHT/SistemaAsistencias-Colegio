@@ -6,29 +6,34 @@ type LoginPageProps = {
   error: string
   isSubmitting: boolean
   onSubmit: (email: string, password: string) => Promise<void>
+  onGuardianAccess: (dni: string, code: string) => Promise<void>
 }
 
 const currentYear = new Date().getFullYear()
 
-export function LoginPage({ error, isSubmitting, onSubmit }: LoginPageProps) {
+export function LoginPage({ error, isSubmitting, onSubmit, onGuardianAccess }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [dni, setDni] = useState('')
+  const [accessCode, setAccessCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [isGuardian, setIsGuardian] = useState(false)
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    void onSubmit(email, password)
+    if (isGuardian) void onGuardianAccess(dni, accessCode)
+    else void onSubmit(email, password)
   }
 
   return (
     <main className="login-layout">
       <section className="welcome-panel" aria-label="Sistema de asistencia escolar">
         <div className="panel-top">
-          <a className="brand" href="/" aria-label="Asiste, inicio">
+          <a className="brand" href="/" aria-label="SIGA, inicio">
             <BrandMark />
-            <span>asiste<span className="brand-period">.</span></span>
+            <span>SIGA</span>
           </a>
-          <span className="school-tag">PLATAFORMA ESCOLAR</span>
+          <span className="school-tag">GESTIÓN ESCOLAR</span>
         </div>
 
         <div className="panel-copy">
@@ -67,41 +72,80 @@ export function LoginPage({ error, isSubmitting, onSubmit }: LoginPageProps) {
         </div>
 
         <div className="panel-footer">
-          <span>ASISTENCIA, MÁS CERCA.</span>
-          <span>© {currentYear} ASISTE</span>
+          <span>TODO EL COLEGIO, EN UN SOLO LUGAR.</span>
+          <span>© {currentYear} SIGA</span>
         </div>
       </section>
 
       <section className="form-panel">
         <div className="mobile-brand">
           <BrandMark />
-          <span>asiste<span className="brand-period">.</span></span>
+          <span>SIGA</span>
         </div>
         <div className="login-form-wrap">
           <div className="form-heading">
-            <span className="eyebrow">TU ESPACIO DE TRABAJO</span>
-            <h2>Bienvenido de nuevo</h2>
-            <p>Ingresa tus datos para acceder a tu cuenta.</p>
+            <span className="eyebrow">{isGuardian ? 'ACCESO PARA FAMILIAS' : 'TU ESPACIO DE TRABAJO'}</span>
+            <h2>{isGuardian ? 'Consulta la asistencia' : 'Bienvenido de nuevo'}</h2>
+            <p>
+              {isGuardian
+                ? 'Ingresa el DNI de tu hijo y el código de acceso entregado por el colegio.'
+                : 'Ingresa tus datos para acceder a tu cuenta.'}
+            </p>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            <label className="field-label" htmlFor="email">Correo electrónico</label>
-            <div className="input-wrap">
-              <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                <path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="username"
-                placeholder="nombre@colegio.edu"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
+            {isGuardian ? (
+              <>
+                <label className="field-label" htmlFor="guardian-dni">DNI del alumno</label>
+                <div className="input-wrap">
+                  <input
+                    id="guardian-dni"
+                    name="guardian-dni"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={15}
+                    placeholder="DNI registrado en el colegio"
+                    value={dni}
+                    onChange={(event) => setDni(event.target.value.replace(/\D/g, ''))}
+                    required
+                  />
+                </div>
+                <label className="field-label" htmlFor="guardian-code">Código de acceso</label>
+                <div className="input-wrap">
+                  <input
+                    id="guardian-code"
+                    name="guardian-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={4}
+                    placeholder="4 dígitos"
+                    value={accessCode}
+                    onChange={(event) => setAccessCode(event.target.value.replace(/\D/g, ''))}
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="field-label" htmlFor="email">Correo electrónico</label>
+                <div className="input-wrap">
+                  <svg className="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="username"
+                    placeholder="nombre@colegio.edu"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </div>
 
             <div className="password-label-row">
               <label className="field-label" htmlFor="password">Contraseña</label>
@@ -140,6 +184,8 @@ export function LoginPage({ error, isSubmitting, onSubmit }: LoginPageProps) {
                 )}
               </button>
             </div>
+              </>
+            )}
 
             {error && (
               <p className="form-error" role="alert">
@@ -159,7 +205,7 @@ export function LoginPage({ error, isSubmitting, onSubmit }: LoginPageProps) {
                 </>
               ) : (
                 <>
-                  Iniciar sesión
+                  {isGuardian ? 'Ingresar al portal familiar' : 'Iniciar sesión'}
                   <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -168,12 +214,20 @@ export function LoginPage({ error, isSubmitting, onSubmit }: LoginPageProps) {
             </button>
           </form>
 
+          <button
+            type="button"
+            className="text-button mt-5 w-full"
+            onClick={() => setIsGuardian((current) => !current)}
+          >
+            {isGuardian ? 'Volver al inicio de sesión del personal' : 'Soy apoderado'}
+          </button>
+
           <div className="secure-note">
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
               <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
-            Acceso seguro para el personal autorizado
+            Acceso para personal y familias con código del colegio
           </div>
         </div>
 

@@ -1,11 +1,17 @@
-import { IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 import { EstadoAsistencia } from '../../asistencia.enums';
 
 export class RegistroManualDto {
   @IsUUID()
   matriculaId: string;
 
-  @IsEnum(EstadoAsistencia)
+  @IsIn([
+    EstadoAsistencia.PRESENTE,
+    EstadoAsistencia.TARDANZA,
+    EstadoAsistencia.FALTA,
+    EstadoAsistencia.RETIRO_TEMPRANO,
+    EstadoAsistencia.EVASION,
+  ])
   estado: EstadoAsistencia;
 
   @IsOptional()

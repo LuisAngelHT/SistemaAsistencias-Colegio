@@ -2,12 +2,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { UsuarioModule } from '../usuarios/usuario.module';
+import { PortalFamiliarModule } from '../apoderados/portal-familiar.module';
 import { AuthController } from './auth.controller';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 
 @Module({
-  imports: [UsuarioModule],
+  imports: [UsuarioModule, PortalFamiliarModule],
   controllers: [AuthController],
   providers: [
     // El orden importa: primero autenticar, luego revisar rol

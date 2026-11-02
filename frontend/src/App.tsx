@@ -10,6 +10,11 @@ import {
   subscribeToSignOut,
 } from './features/auth/authService'
 import type { Usuario } from './features/auth/types'
+import {
+  accessFamily,
+  clearFamilyAccess,
+  restoreFamilyAccess,
+} from './features/attendance/justificationRequestsService'
 
 const TeacherDashboard = lazy(() =>
   import('./features/teacher/TeacherDashboard').then((module) => ({
@@ -21,11 +26,17 @@ const AuxiliaryDashboard = lazy(() =>
     default: module.AuxiliaryDashboard,
   })),
 )
+const ParentDashboard = lazy(() =>
+  import('./features/parent/ParentDashboard').then((module) => ({
+    default: module.ParentDashboard,
+  })),
+)
 
 const roleLabels: Record<Usuario['rol'], string> = {
   director: 'Director',
   auxiliar: 'Auxiliar',
   profesor: 'Profesor',
+  apoderado: 'Familiar',
 }
 
 function App() {
@@ -39,7 +50,7 @@ function App() {
 
     const restoreSession = async () => {
       try {
-        const profile = await getCurrentUsuario()
+        const profile = await restoreFamilyAccess() ?? await getCurrentUsuario()
         if (isMounted) setUsuario(profile)
       } catch (restoreError) {
         if (isMounted) {
@@ -84,8 +95,25 @@ function App() {
     }
   }
 
+  const handleGuardianAccess = async (dni: string, code: string) => {
+    setError('')
+    setIsSubmitting(true)
+    try {
+      setUsuario(await accessFamily(dni, code))
+    } catch (accessError) {
+      setError(
+        accessError instanceof Error
+          ? accessError.message
+          : 'No se pudo ingresar al portal familiar.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const handleSignOut = async () => {
     try {
+      clearFamilyAccess()
       await signOut()
       queryClient.clear()
       setUsuario(null)
@@ -105,6 +133,13 @@ function App() {
   }
 
   if (usuario) {
+    if (usuario.rol === 'apoderado') {
+      return (
+        <Suspense fallback={<main className="loading-screen" aria-label="Cargando portal familiar"><span className="loading-spinner" /><span>Preparando tu espacio...</span></main>}>
+          <ParentDashboard usuario={usuario} onSignOut={handleSignOut} />
+        </Suspense>
+      )
+    }
     if (usuario.rol === 'director') {
       return (
         <DirectorDashboard
@@ -149,7 +184,7 @@ function App() {
       <main className="welcome-screen">
         <section className="welcome-card">
           <BrandMark />
-          <span className="eyebrow">ASISTENCIA ESCOLAR</span>
+          <span className="eyebrow">SIGA · GESTIÓN ESCOLAR</span>
           <h1>¡Qué bueno verte, {usuario.nombres}!</h1>
           <p>
             Has iniciado sesión como <strong>{roleLabels[usuario.rol]}</strong>.
@@ -180,6 +215,7 @@ function App() {
       error={error}
       isSubmitting={isSubmitting}
       onSubmit={handleLogin}
+      onGuardianAccess={handleGuardianAccess}
     />
   )
 }

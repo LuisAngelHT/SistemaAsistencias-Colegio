@@ -35,12 +35,6 @@ export class Seccion {
   @JoinColumn({ name: 'tutor_id' })
   tutor: Usuario | null;
 
-  @Column({ name: 'hora_ingreso', type: 'time', default: '08:00' })
-  horaIngreso: string;
-
-  @Column({ name: 'tolerancia_min', type: 'smallint', default: 10 })
-  toleranciaMin: number;
-
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

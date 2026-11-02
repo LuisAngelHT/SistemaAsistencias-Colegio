@@ -8,8 +8,8 @@ class AsistenciaAlumnoDto {
   @IsUUID()
   matriculaId: string;
 
-  @IsIn([EstadoAsistencia.PRESENTE, EstadoAsistencia.FALTA])
-  estado: EstadoAsistencia.PRESENTE | EstadoAsistencia.FALTA;
+  @IsIn([EstadoAsistencia.PRESENTE, EstadoAsistencia.FALTA, EstadoAsistencia.EVASION])
+  estado: EstadoAsistencia.PRESENTE | EstadoAsistencia.FALTA | EstadoAsistencia.EVASION;
 }
 
 export class GuardarAsistenciaClaseDto {

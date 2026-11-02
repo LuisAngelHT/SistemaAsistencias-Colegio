@@ -6,6 +6,7 @@ export enum RolUsuario {
   DIRECTOR = 'director',
   AUXILIAR = 'auxiliar',
   PROFESOR = 'profesor',
+  APODERADO = 'apoderado',
 }
 
 @Entity({ schema: 'public', name: 'usuarios' })

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BookOpen, CalendarDays, Check, CheckCheck, Clock3, LogOut, Users, X,
@@ -35,6 +35,28 @@ const todayLabel = new Intl.DateTimeFormat('es-PE', {
 }).format(new Date())
 const attendanceKey = (horarioId: number, date: string) =>
   ['teacher', 'class-attendance', horarioId, date] as const
+const weekDays = [1, 2, 3, 4, 5, 6, 7]
+
+function currentWeekDates() {
+  const today = new Date(`${limaToday()}T12:00:00Z`)
+  const offsetFromMonday = (today.getUTCDay() + 6) % 7
+  const monday = new Date(today)
+  monday.setUTCDate(today.getUTCDate() - offsetFromMonday)
+
+  return weekDays.map((day) => {
+    const date = new Date(monday)
+    date.setUTCDate(monday.getUTCDate() + day - 1)
+    return {
+      day,
+      date: date.toISOString().slice(0, 10),
+      label: new Intl.DateTimeFormat('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'America/Lima',
+      }).format(date),
+    }
+  })
+}
 
 function initials(student: ClassAttendance['alumnos'][number]['alumno']) {
   return `${student.nombres.charAt(0)}${student.apellidos.charAt(0)}`.toUpperCase()
@@ -59,12 +81,17 @@ function AttendanceDialog({
   })
 
   const stateKey = `${schedule.id}-${date}`
-  const states = stateOverrides[stateKey] ?? Object.fromEntries(
-    (data?.alumnos ?? []).map((row) => [row.matriculaId, row.estado]),
+  const initialStates = (data?.alumnos ?? []).reduce<Record<string, AttendanceState | null>>(
+    (result, row) => {
+      result[row.matriculaId] = row.estado === 'falta' ? 'evasion' : row.estado
+      return result
+    },
+    {},
   )
+  const states = stateOverrides[stateKey] ?? initialStates
 
   const presentCount = Object.values(states).filter((state) => state === 'presente').length
-  const absentCount = Object.values(states).filter((state) => state === 'falta').length
+  const absentCount = Object.values(states).filter((state) => state === 'evasion').length
   const completedCount = presentCount + absentCount
   const allMarked = Boolean(data?.alumnos.length) && completedCount === data?.alumnos.length
 
@@ -173,13 +200,13 @@ function AttendanceDialog({
                 <Button
                   type="button"
                   size="sm"
-                  variant={states[row.matriculaId] === 'falta' ? 'destructive' : 'outline'}
-                  aria-pressed={states[row.matriculaId] === 'falta'}
-                  onClick={() => setStudentState(row.matriculaId, 'falta')}
-                  className={states[row.matriculaId] === 'falta' ? '' : 'text-rose-700'}
+                  variant={states[row.matriculaId] === 'evasion' ? 'destructive' : 'outline'}
+                  aria-pressed={states[row.matriculaId] === 'evasion'}
+                  onClick={() => setStudentState(row.matriculaId, 'evasion')}
+                  className={states[row.matriculaId] === 'evasion' ? '' : 'text-rose-700'}
                 >
                   <X aria-hidden="true" />
-                  Ausente
+                  Evasión
                 </Button>
               </div>
             </div>
@@ -211,10 +238,7 @@ export function TeacherDashboard({ usuario, onSignOut }: TeacherDashboardProps) 
   })
 
   const todayDay = limaWeekday()
-  const todaySchedules = useMemo(
-    () => schedules.filter((schedule) => schedule.diaSemana === todayDay),
-    [schedules, todayDay],
-  )
+  const weekDates = currentWeekDates()
   const assignedCourses = new Set(schedules.map((schedule) => schedule.curso.id)).size
   const assignedSections = new Set(schedules.map((schedule) => schedule.seccion.id)).size
   const assignedGrades = new Set(schedules.map((schedule) => schedule.seccion.grado.id)).size
@@ -229,37 +253,12 @@ export function TeacherDashboard({ usuario, onSignOut }: TeacherDashboardProps) 
     }
   }
 
-  const renderSchedule = (schedule: TeacherSchedule) => (
-    <article key={schedule.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-800">
-          <BookOpen className="size-5" aria-hidden="true" />
-        </span>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-          {weekdayLabel(schedule.diaSemana)}
-        </span>
-      </div>
-      <h3 className="mt-4 text-lg font-bold text-slate-900">{schedule.curso.nombre}</h3>
-      <p className="mt-1 text-sm text-slate-600">
-        {schedule.seccion.grado.nombre} · Sección {schedule.seccion.nombre}
-      </p>
-      <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-        <Clock3 className="size-4" aria-hidden="true" />
-        {timeLabel(schedule.horaInicio)} – {timeLabel(schedule.horaFin)}
-      </p>
-      <Button className="mt-5 w-full" onClick={() => setSelectedSchedule(schedule)}>
-        <Users aria-hidden="true" />
-        Pasar lista
-      </Button>
-    </article>
-  )
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-10">
-        <a className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-emerald-950" href="/" aria-label="Asiste, inicio">
+        <a className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-emerald-950" href="/" aria-label="SIGA, inicio">
           <BrandMark />
-          <span>asiste<span className="text-emerald-500">.</span></span>
+          <span>SIGA</span>
         </a>
         <div className="flex items-center gap-3">
           <span className="hidden text-xs font-medium text-slate-600 sm:inline">Profesor</span>
@@ -314,32 +313,64 @@ export function TeacherDashboard({ usuario, onSignOut }: TeacherDashboardProps) 
         <section className="mb-10">
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Clases de hoy</h2>
-              <p className="mt-1 text-xs text-slate-500">Accede a la lista para registrar la asistencia por curso.</p>
+              <h2 className="text-lg font-bold text-slate-900">Calendario semanal</h2>
+              <p className="mt-1 text-xs text-slate-500">Consulta los cursos, horarios y secciones asignadas para cada día.</p>
             </div>
           </div>
           {isPending ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }, (_, index) => <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-200" />)}
+            <div className="flex gap-3 overflow-hidden">
+              {weekDays.map((day) => <div key={day} className="h-64 min-w-56 flex-1 animate-pulse rounded-2xl bg-slate-200" />)}
             </div>
-          ) : todaySchedules.length ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{todaySchedules.map(renderSchedule)}</div>
           ) : !error ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-              <CalendarDays className="mx-auto size-9 text-slate-300" />
-              <h3 className="mt-3 text-sm font-semibold text-slate-700">No tienes clases programadas para hoy</h3>
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-[980px] grid-cols-7 gap-3">
+                {weekDates.map(({ day, date, label }) => {
+                  const daySchedules = schedules.filter((schedule) => schedule.diaSemana === day)
+                  const isToday = day === todayDay
+                  return (
+                    <section
+                      key={day}
+                      aria-label={`${weekdayLabel(day)} ${label}`}
+                      className={`min-h-64 rounded-xl border p-3 ${isToday ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white'}`}
+                    >
+                      <header className="mb-3 border-b border-slate-100 pb-2">
+                        <h3 className={`text-sm font-bold ${isToday ? 'text-emerald-800' : 'text-slate-800'}`}>
+                          {weekdayLabel(day)}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          <time dateTime={date}>{label}</time>{isToday ? ' · Hoy' : ''}
+                        </p>
+                      </header>
+                      <div className="space-y-2">
+                        {daySchedules.length ? daySchedules.map((schedule) => (
+                          <article key={schedule.id} className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+                            <p className="flex items-center gap-1 text-[11px] font-semibold text-emerald-800">
+                              <Clock3 className="size-3.5" aria-hidden="true" />
+                              {timeLabel(schedule.horaInicio)}–{timeLabel(schedule.horaFin)}
+                            </p>
+                            <h4 className="mt-2 text-xs font-bold leading-snug text-slate-900">{schedule.curso.nombre}</h4>
+                            <p className="mt-1 text-[11px] leading-snug text-slate-600">
+                              {schedule.seccion.grado.nombre} · Sección {schedule.seccion.nombre}
+                            </p>
+                            <Button
+                              className="mt-2 h-8 w-full px-2 text-xs"
+                              variant="outline"
+                              onClick={() => setSelectedSchedule(schedule)}
+                            >
+                              <Users aria-hidden="true" />
+                              Pasar lista
+                            </Button>
+                          </article>
+                        )) : (
+                          <p className="py-6 text-center text-xs text-slate-400">Sin clases</p>
+                        )}
+                      </div>
+                    </section>
+                  )
+                })}
+              </div>
             </div>
           ) : null}
-        </section>
-
-        <section>
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Mis asignaciones</h2>
-            <p className="mt-1 text-xs text-slate-500">Cursos, grados y secciones de tu horario vigente.</p>
-          </div>
-          {!isPending && schedules.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{schedules.map(renderSchedule)}</div>
-          )}
         </section>
       </main>
 

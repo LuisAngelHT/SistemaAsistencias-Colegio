@@ -12,6 +12,8 @@ export type SectionAttendance = {
   total: number
   presentes: number
   tardanzas: number
+  faltas: number
+  justificadas: number
   sinRegistrar: number
   alumnos: {
     matriculaId: string
@@ -25,6 +27,7 @@ export type SectionAttendance = {
     estado: string | null
     hora: string | null
     metodo: string | null
+    observacion: string | null
   }[]
 }
 
@@ -33,7 +36,7 @@ export type ScanResult = {
   mensaje: string
   estado: string
   fecha: string
-  hora: string
+  hora: string | null
   alumno: {
     id: string
     codigo: string
@@ -42,6 +45,13 @@ export type ScanResult = {
     fotoUrl: string | null
   }
   seccion: string
+}
+
+export type EntryConfiguration = {
+  horaIngreso: string
+  toleranciaMin: number
+  horaLimite: string
+  updatedAt: string
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -76,8 +86,12 @@ export function getSections(): Promise<AuxiliarySection[]> {
   return request<AuxiliarySection[]>('/secciones')
 }
 
-export function getSectionAttendance(sectionId: number): Promise<SectionAttendance> {
-  return request<SectionAttendance>(`/asistencia/ingreso?seccionId=${sectionId}`)
+export function getSectionAttendance(
+  sectionId: number,
+  fecha = limaToday(),
+): Promise<SectionAttendance> {
+  const search = new URLSearchParams({ seccionId: String(sectionId), fecha })
+  return request<SectionAttendance>(`/asistencia/ingreso?${search}`)
 }
 
 export function getSectionEnrollments(sectionId: number) {
@@ -97,11 +111,22 @@ export function scanStudentCode(codigo: string): Promise<ScanResult> {
 
 export function markStudentAttendance(
   matriculaId: string,
-  estado: 'presente' | 'falta',
+  estado: 'presente' | 'tardanza' | 'falta',
 ): Promise<unknown> {
   return request('/asistencia/ingreso/manual', {
     method: 'POST',
     body: JSON.stringify({ matriculaId, estado }),
+  })
+}
+
+export function getEntryConfiguration(): Promise<EntryConfiguration> {
+  return request<EntryConfiguration>('/asistencia/ingreso/configuracion')
+}
+
+export function updateEntryConfiguration(data: Pick<EntryConfiguration, 'horaIngreso' | 'toleranciaMin' | 'horaLimite'>) {
+  return request<EntryConfiguration>('/asistencia/ingreso/configuracion', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   })
 }
 

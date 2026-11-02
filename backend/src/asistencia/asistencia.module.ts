@@ -9,10 +9,11 @@ import { HorarioModule } from '../horarios/horario.module';
 import { AsistenciaClase } from './clase/asistencia-clase.entity';
 import { AsistenciaClaseService } from './clase/asistencia-clase.service';
 import { AsistenciaClaseController } from './clase/asistencia-clase.controller';
+import { ConfiguracionIngreso } from './ingreso/configuracion-ingreso.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AsistenciaIngreso, AsistenciaClase]),
+    TypeOrmModule.forFeature([AsistenciaIngreso, AsistenciaClase, ConfiguracionIngreso]),
     MatriculaModule,
     AlumnoModule,
     HorarioModule,

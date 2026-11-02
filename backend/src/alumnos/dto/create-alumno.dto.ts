@@ -7,8 +7,8 @@ export class CreateAlumnoDto {
   @Matches(/^[A-Za-z0-9-]{3,20}$/, { message: 'codigo: 3 a 20 letras, números o guiones' })
   codigo?: string;
 
-  @IsOptional() @IsString() @Length(8, 15)
-  dni?: string;
+  @IsString() @Length(8, 15) @Matches(/^\d{8,15}$/)
+  dni: string;
 
   @IsString() @IsNotEmpty() @MaxLength(100)
   nombres: string;

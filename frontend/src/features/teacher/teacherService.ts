@@ -13,7 +13,7 @@ export type TeacherSchedule = {
   }
 }
 
-export type AttendanceState = 'presente' | 'falta'
+export type AttendanceState = 'presente' | 'evasion'
 
 export type ClassAttendance = {
   horarioId: number
@@ -29,7 +29,7 @@ export type ClassAttendance = {
       apellidos: string
       fotoUrl: string | null
     }
-    estado: AttendanceState | null
+    estado: AttendanceState | 'falta' | null
   }[]
 }
 

@@ -7,10 +7,11 @@ import { UsuarioModule } from './usuarios/usuario.module';
 import { AuthModule } from './auth/auth.module';
 import { AcademicoModule } from './academico/academico.module';
 import { AlumnoModule } from './alumnos/alumno.module';
-import { ApoderadoModule } from './apoderados/apoderado.module';
+import { PortalFamiliarModule } from './apoderados/portal-familiar.module';
 import { MatriculaModule } from './matriculas/matricula.module';
 import { HorarioModule } from './horarios/horario.module';
 import { AsistenciaModule } from './asistencia/asistencia.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { AsistenciaModule } from './asistencia/asistencia.module';
         synchronize: false, // el esquema ya lo creaste con tu script SQL
       }),
     }),
-    SupabaseModule, UsuarioModule, AuthModule, AcademicoModule, AlumnoModule, ApoderadoModule, MatriculaModule, HorarioModule, AsistenciaModule
+    SupabaseModule, UsuarioModule, AuthModule, AcademicoModule, AlumnoModule, PortalFamiliarModule, MatriculaModule, HorarioModule, AsistenciaModule, ReportesModule
   ],
 })
 export class AppModule {}

@@ -49,6 +49,18 @@ export class HorarioService {
     }
   }
 
+  private async validarCursoUnicoEnSeccion(seccionId: number, cursoId: number, excluirId?: number) {
+    const query = this.repo.createQueryBuilder('horario')
+      .where('horario.seccionId = :seccionId', { seccionId })
+      .andWhere('horario.cursoId = :cursoId', { cursoId })
+      .andWhere('horario.activo = true');
+    if (excluirId) query.andWhere('horario.id != :excluirId', { excluirId });
+
+    if (await query.getOne()) {
+      throw new ConflictException('Este curso ya está asignado a esa sección');
+    }
+  }
+
   // Una sección no puede tener 2 clases a la vez; un profesor tampoco (en el mismo año)
   private async validarSolapes(f: Franja, anioId: number, excluirId?: number) {
     const qb = this.repo
@@ -77,6 +89,7 @@ export class HorarioService {
     const seccion = await this.secciones.findOne(dto.seccionId);
     await this.validarProfesor(dto.profesorId);
     await this.validarCurso(dto.cursoId);
+    await this.validarCursoUnicoEnSeccion(dto.seccionId, dto.cursoId);
 
     const horaInicio = norm(dto.horaInicio);
     const horaFin = norm(dto.horaFin);
@@ -88,7 +101,7 @@ export class HorarioService {
       return this.findOne(saved.id);
     } catch (e) {
       handleDbError(e, {
-        unique: 'La sección ya tiene una clase con esa hora de inicio ese día',
+        unique: 'El curso ya está asignado a esa sección o existe un horario duplicado',
         fk: 'La sección, el curso o el profesor no existe',
       });
     }
@@ -151,6 +164,10 @@ export class HorarioService {
       horaInicio: norm(dto.horaInicio ?? actual.horaInicio),
       horaFin: norm(dto.horaFin ?? actual.horaFin),
     };
+    const cursoId = dto.cursoId ?? actual.cursoId;
+    if (dto.activo ?? actual.activo) {
+      await this.validarCursoUnicoEnSeccion(actual.seccionId, cursoId, id);
+    }
     this.validarHoras(franja.horaInicio, franja.horaFin);
     if (dto.activo ?? actual.activo) {
       await this.validarSolapes(franja, actual.seccion.anioAcademicoId, id);
@@ -163,7 +180,9 @@ export class HorarioService {
         horaFin: franja.horaFin,
       });
     } catch (e) {
-      handleDbError(e, { unique: 'La sección ya tiene una clase con esa hora de inicio ese día' });
+      handleDbError(e, {
+        unique: 'El curso ya está asignado a esa sección o existe un horario duplicado',
+      });
     }
     return this.findOne(id);
   }

@@ -13,6 +13,33 @@ type HorarioRecord = {
   activo: boolean
 }
 
+export type AttendanceTrendPoint = {
+  fecha: string
+  presentes: number
+  tardanzas: number
+  faltas: number
+}
+
+export type AttendanceReportRow = {
+  id: string
+  fecha: string
+  alumno: string
+  dni: string
+  codigo: string
+  seccion: string
+  estado: string
+  hora: string
+}
+
+export type EvasionAlert = {
+  id: string
+  fecha: string
+  hora: string
+  alumno: string
+  curso: string
+  seccion: string
+}
+
 async function apiGet<T>(path: string, accessToken: string): Promise<T> {
   const response = await fetch(`${apiUrl}${path}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -29,6 +56,35 @@ async function apiGet<T>(path: string, accessToken: string): Promise<T> {
   }
 
   return (await response.json()) as T
+}
+
+async function getAccessToken(): Promise<string> {
+  if (!supabase) throw new Error('Falta configurar Supabase. Revisa las variables de entorno del frontend.')
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw new Error('No se pudo validar la sesión para cargar los reportes.')
+  if (!data.session) throw new Error('La sesión expiró. Inicia sesión nuevamente.')
+  return data.session.access_token
+}
+
+export async function getAttendanceTrend(): Promise<AttendanceTrendPoint[]> {
+  const token = await getAccessToken()
+  return apiGet<AttendanceTrendPoint[]>('/reportes/resumen-asistencia', token)
+}
+
+export async function getAttendanceReport(): Promise<{
+  data: AttendanceReportRow[]
+  total: number
+  truncado: boolean
+  desde: string
+  hasta: string
+}> {
+  const token = await getAccessToken()
+  return apiGet('/reportes/asistencia', token)
+}
+
+export async function getEvasionAlerts(): Promise<EvasionAlert[]> {
+  const token = await getAccessToken()
+  return apiGet<EvasionAlert[]>('/reportes/evasiones-recientes', token)
 }
 
 function activeCount(records: UsuarioRecord[] | HorarioRecord[]): number {

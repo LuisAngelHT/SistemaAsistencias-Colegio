@@ -13,6 +13,9 @@ export class Alumno {
   @Column({ type: 'varchar', length: 15, unique: true, nullable: true })
   dni: string | null;
 
+  @Column({ name: 'codigo_acceso_familia_hash', type: 'text', nullable: true, select: false })
+  codigoAccesoFamiliaHash: string | null;
+
   @Column({ type: 'text' })
   nombres: string;
 

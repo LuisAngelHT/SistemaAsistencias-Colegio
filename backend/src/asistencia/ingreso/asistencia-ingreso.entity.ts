@@ -21,7 +21,7 @@ export class AsistenciaIngreso {
   fecha: string;
 
   @Column({ name: 'hora_registro', type: 'timestamptz', nullable: true })
-  horaRegistro: Date;
+  horaRegistro: Date | null;
 
   @Column({ type: 'enum', enum: EstadoAsistencia, enumName: 'estado_asistencia' })
   estado: EstadoAsistencia;

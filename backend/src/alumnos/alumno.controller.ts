@@ -5,6 +5,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolUsuario } from '../usuarios/usuario.entity';
 import { AlumnoService } from './alumno.service';
 import { CreateAlumnoDto } from './dto/create-alumno.dto';
+import { ImportarAlumnosDto } from './dto/importar-alumnos.dto';
 import { UpdateAlumnoDto } from './dto/update-alumno.dto';
 
 @Roles(RolUsuario.DIRECTOR)
@@ -12,9 +13,19 @@ import { UpdateAlumnoDto } from './dto/update-alumno.dto';
 export class AlumnoController {
   constructor(private readonly service: AlumnoService) {}
 
+  @Post('importar')
+  importar(@Body() dto: ImportarAlumnosDto) {
+    return this.service.importar(dto.alumnos);
+  }
+
   @Post()
   create(@Body() dto: CreateAlumnoDto) {
     return this.service.create(dto);
+  }
+
+  @Post(':id/codigo-acceso-familiar')
+  generarCodigoAccesoFamilia(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.generarCodigoAccesoFamilia(id);
   }
 
   @Roles(RolUsuario.DIRECTOR, RolUsuario.AUXILIAR)
